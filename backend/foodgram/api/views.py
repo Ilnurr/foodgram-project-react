@@ -40,7 +40,8 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response({'message': f'Подписан на {author.username}'},
                             status=status.HTTP_201_CREATED)
         else:
-            return Response({'message': f'Уже подписался на {author.username}'})
+            return Response(
+                {'message': f'Уже подписался на {author.username}'})
 
     @action(detail=True, methods=['post'])
     def unsubscribe(self, request, pk=None):
@@ -116,9 +117,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
             shopping_list, created = ShoppingList.objects.get_or_create(
                 user=request.user, recipe=recipe)
             if created:
-                serializer = ShoppingListSerializer(shopping_list) 
+                serializer = ShoppingListSerializer(shopping_list)
                 return Response(serializer.data,
-                                status=status.HTTP_201_CREATED) 
+                                status=status.HTTP_201_CREATED)
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         elif request.method == 'DELETE':
@@ -128,24 +129,24 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=['post'],
-            permission_classes=[IsAuthenticated]) 
+            permission_classes=[IsAuthenticated])
     def add_to_shopping_list(self, request, pk=None):
         recipe = self.get_object()
         shopping_list, created = ShoppingList.objects.get_or_create(
             user=request.user,
-            recipe=recipe)    
+            recipe=recipe)
         if created:
             serializer = ShoppingListSerializer(shopping_list)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)    
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, methods=['delete'], 
-            permission_classes=[IsAuthenticated]) 
-    def remove_from_shopping_list(self, request, pk=None): 
-        recipe = self.get_object() 
+    @action(detail=True, methods=['delete'],
+            permission_classes=[IsAuthenticated])
+    def remove_from_shopping_list(self, request, pk=None):
+        recipe = self.get_object()
         shopping_list = ShoppingList.objects.get(user=request.user,
                                                  recipe=recipe)
-        shopping_list.delete() 
+        shopping_list.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=['get'],

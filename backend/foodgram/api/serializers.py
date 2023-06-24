@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from djoser.serializers import UserSerializer
-from drf_extra_fields.fields import Base64ImageField
+# from drf_extra_fields.fields import Base64ImageField
 
 from users.models import User, Subscribed
 from recipes.models import (Tag, Ingredient, Recipe, IngredientRecipe,
@@ -64,7 +64,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     author = UsersSerializer()
     ingredients = IngredientSerializer(many=True)
     tags = TagSerializer(many=True)
-    image = Base64ImageField()
+    # image = Base64ImageField(required=False)
 
     class Meta:
         model = Recipe
@@ -87,7 +87,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         ingredient_mapping = {
             ingredient.id: ingredient
             for ingredient in instance.ingredients.all()
-            }
+        }
         for ingredient_data in ingredients_data:
             ingredient_id = ingredient_data.get('id', None)
             if ingredient_id:
@@ -100,11 +100,10 @@ class RecipeSerializer(serializers.ModelSerializer):
                 ingredient = Ingredient.objects.create(**ingredient_data)
             amount = ingredient_data['amount']
             IngredientRecipe.objects.update_or_create(
-                                                    recipe=recipe,
-                                                    ingredient=ingredient,
-                                                    defaults={'amount': amount}
+                recipe=recipe,
+                ingredient=ingredient,
+                defaults={'amount': amount}
             )
         for ingredient in ingredient_mapping.values():
             ingredient.delete()
         return recipe
-

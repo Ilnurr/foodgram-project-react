@@ -57,4 +57,4 @@ class Subscribed(models.Model):
     def __str__(self):
         return 'Подписка пользователя {} на автора {}'.format(
             self.user.username, self.author.username
-            )
+        )

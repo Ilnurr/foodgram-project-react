@@ -1,5 +1,4 @@
 from django.db import models
-from django.db.models import UniqueConstraint
 from users.models import User
 from django.core.validators import MinValueValidator
 
@@ -115,7 +114,8 @@ class IngredientRecipe(models.Model):
         verbose_name_plural = 'Ингредиенты в рецепте'
 
     def __str__(self):
-        return f'{self.ingredient.name} - {self.amount} {self.ingredient.measurement_unit}'
+        return (f'{self.ingredient.name} - '
+                f'{self.amount} {self.ingredient.measurement_unit}')
 
 
 class Favorite(models.Model):
@@ -150,13 +150,13 @@ class ShoppingList(models.Model):
         on_delete=models.CASCADE,
         related_name='cart',
         verbose_name='Пользователь'
-        )
+    )
     recipe = models.ForeignKey(
         'Recipe',
         on_delete=models.CASCADE,
         related_name='cart',
         verbose_name='Покупка'
-        )
+    )
 
     class Meta:
         unique_together = ('user', 'recipe')
@@ -165,4 +165,3 @@ class ShoppingList(models.Model):
 
     def __str__(self):
         return f'{self.user.username} - {self.recipe.name}'
-
