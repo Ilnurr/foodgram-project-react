@@ -55,4 +55,6 @@ class Subscribed(models.Model):
         unique_together = ('user', 'author')
 
     def __str__(self):
-        return 'Подписка пользователя {} на автора {}'.format(self.user.username, self.author.username)
+        return 'Подписка пользователя {} на автора {}'.format(
+            self.user.username, self.author.username
+            )

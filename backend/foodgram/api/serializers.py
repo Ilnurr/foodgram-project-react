@@ -3,7 +3,8 @@ from djoser.serializers import UserSerializer
 from drf_extra_fields.fields import Base64ImageField
 
 from users.models import User, Subscribed
-from recipes.models import Tag, Ingredient, Recipe, IngredientRecipe
+from recipes.models import (Tag, Ingredient, Recipe, IngredientRecipe,
+                            ShoppingList, Favorite)
 
 
 class UsersSerializer(UserSerializer):
@@ -47,6 +48,18 @@ class IngredientRecipeSerializer(serializers.ModelSerializer):
         fields = ('ingredient', 'amount')
 
 
+class ShoppingListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ShoppingList
+        fields = '__all__'
+
+
+class FavoriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Favorite
+        fields = '__all__'
+
+
 class RecipeSerializer(serializers.ModelSerializer):
     author = UsersSerializer()
     ingredients = IngredientSerializer(many=True)
@@ -55,6 +68,43 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Recipe
-        fields = ('id', 'author', 'text',
-                  'ingredients', 'name',
-                  'image', 'tags', 'cooking_time')
+        fields = '__all__'
+
+    def create(self, validated_data):
+        ingredients_data = validated_data.pop('ingredients')
+        recipe = super().create(validated_data)
+        for ingredient_data in ingredients_data:
+            ingredient = Ingredient.objects.get_or_create(**ingredient_data)[0]
+            amount = ingredient_data['amount']
+            IngredientRecipe.objects.create(recipe=recipe,
+                                            ingredient=ingredient,
+                                            amount=amount)
+        return recipe
+
+    def update(self, instance, validated_data):
+        ingredients_data = validated_data.pop('ingredients')
+        recipe = super().update(instance, validated_data)
+        ingredient_mapping = {
+            ingredient.id: ingredient
+            for ingredient in instance.ingredients.all()
+            }
+        for ingredient_data in ingredients_data:
+            ingredient_id = ingredient_data.get('id', None)
+            if ingredient_id:
+                ingredient = ingredient_mapping.pop(ingredient_id)
+                ingredient.name = ingredient_data.get('name', ingredient.name)
+                ingredient.measurement_unit = ingredient_data.get(
+                    'measurement_unit', ingredient.measurement_unit)
+                ingredient.save()
+            else:
+                ingredient = Ingredient.objects.create(**ingredient_data)
+            amount = ingredient_data['amount']
+            IngredientRecipe.objects.update_or_create(
+                                                    recipe=recipe,
+                                                    ingredient=ingredient,
+                                                    defaults={'amount': amount}
+            )
+        for ingredient in ingredient_mapping.values():
+            ingredient.delete()
+        return recipe
+
