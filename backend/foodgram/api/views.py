@@ -10,7 +10,7 @@ from .serializers import (UsersSerializer, SubscriptionSerializer,
                           RecipeSerializer, ShoppingListSerializer,
                           FavoriteSerializer)
 
-from users.models import User, Subscribed
+from users.models import User, Subscriber
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from recipes.models import (Tag, Ingredient,
                             Recipe, IngredientRecipe,
@@ -18,43 +18,12 @@ from recipes.models import (Tag, Ingredient,
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    '''Вьюсет для автора , юзера , для подписок/отписок'''
     queryset = User.objects.all()
     serializer_class = UsersSerializer
 
-    @action(detail=True, methods=['get', 'post'])
-    def subscriptions(self, request, pk=None):
-        user = self.get_object()
-        subs = Subscribed.objects.filter(user=user)
-        serializer = SubscriptionSerializer(subs,
-                                            many=True,
-                                            context={'request': request})
-        return Response(serializer.data)
-
-    @action(detail=True, methods=['post'])
-    def subscribe(self, request, pk=None):
-        author = get_object_or_404(User, pk=request.data.get('author_id'))
-        user = self.get_object()
-        if not Subscribed.objects.filter(user=user, author=author).exists():
-            Subscribed.objects.create(user=user, author=author)
-            return Response({'message': f'Подписан на {author.username}'},
-                            status=status.HTTP_201_CREATED)
-        else:
-            return Response(
-                {'message': f'Уже подписался на {author.username}'})
-
-    @action(detail=True, methods=['post'])
-    def unsubscribe(self, request, pk=None):
-        author = get_object_or_404(User, pk=request.data.get('author_id'))
-        user = self.get_object()
-        if Subscribed.objects.filter(user=user, author=author).exists():
-            Subscribed.objects.filter(user=user, author=author).delete()
-            return Response({'message': f'Отписался {author.username}'})
-        else:
-            return Response({'message': f'Не подписан на  {author.username}'},
-                            status=status.HTTP_404_NOT_FOUND)
-
-    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
+    @action(detail=False,
+            methods=['post'],
+            permission_classes=[AllowAny])
     def register(self, request):
         serializer = UsersSerializer(data=request.data)
         if serializer.is_valid():
@@ -64,6 +33,44 @@ class UserViewSet(viewsets.ModelViewSet):
         else:
             return Response(serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
+
+
+class SubscriptionViewSet(viewsets.ViewSet):
+    '''Вьюсет для подписок/отписок'''
+    @action(detail=True, methods=['get'])
+    def subscriptions(self, request, pk=None):
+        user = get_object_or_404(User, pk=pk)
+        subs = Subscriber.objects.filter(user=user)
+        serializer = SubscriptionSerializer(subs, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def subscribe(self, request, pk=None):
+        author_id = request.data.get('author_id')
+        if not author_id:
+            return Response({'message': 'Не указан id автора'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        author = get_object_or_404(User, pk=author_id)
+        user = get_object_or_404(User, pk=pk)
+        if not Subscriber.objects.filter(user=user, author=author).exists():
+            subscriptions = [Subscriber(user=user, author=author)]
+            Subscriber.objects.bulk_create(subscriptions)
+            return Response({'message': f'Подписан на {author.username}'},
+                            status=status.HTTP_201_CREATED)
+        else:
+            return Response({'message': f'Уже подписан на {author.username}'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def unsubscribe(self, request, pk=None):
+        author = get_object_or_404(User, pk=request.data.get('author_id'))
+        user = get_object_or_404(User, pk=pk)
+        if Subscriber.objects.filter(user=user, author=author).exists():
+            Subscriber.objects.filter(user=user, author=author).delete()
+            return Response({'message': f'Отписан от {author.username}'})
+        else:
+            return Response({'message': f'Не подписан на  {author.username}'},
+                            status=status.HTTP_404_NOT_FOUND)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):

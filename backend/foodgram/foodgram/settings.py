@@ -2,15 +2,19 @@
 from pathlib import Path
 import os
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-SECRET_KEY = 'django-insecure-1a(g@n8v66^ckggg&(1*215s6o1^!-7s8t*psvx5=9mzr5)u0w'
+SECRET_KEY = os.getenv('SECRET_KEY')
 
-DEBUG = True
+DEBUG = os.getenv('DEBUG', default=False)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 
 AUTH_USER_MODEL = 'users.User'
 
@@ -21,14 +25,15 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    'rest_framework',
+    'rest_framework.authtoken',
+    'django_filters',
+    'djoser',
+
     'users.apps.UsersConfig',
     'api.apps.ApiConfig',
-    'django_filters',
     'recipes.apps.RecipesConfig',
-    'rest_framework.authtoken',
-    'rest_framework',
-    'djoser',
-    'drf_extra_fields',
 ]
 
 MIDDLEWARE = [

@@ -34,7 +34,7 @@ class User(AbstractUser):
         return self.username
 
 
-class Subscribed(models.Model):
+class Subscriber(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,

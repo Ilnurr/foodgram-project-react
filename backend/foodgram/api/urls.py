@@ -9,6 +9,8 @@ router.register('users', views.UserViewSet, basename='users')
 router.register('tags', views.TagViewSet, basename='tags')
 router.register('ingredients', views.IngredientViewSet, basename='ingredients')
 router.register('recipes', views.RecipeViewSet, basename='recipes')
+router.register('Subscription', views.SubscriptionViewSet,
+                basename='Subscription')
 
 
 urlpatterns = [

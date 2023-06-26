@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import User, Subscribed
+from .models import User, Subscriber
 
 
 @admin.register(User)
@@ -15,7 +15,7 @@ class UserAdmin(admin.ModelAdmin):
     list_filter = ('username', 'email')
 
 
-@admin.register(Subscribed)
-class Subscribedadmin(admin.ModelAdmin):
+@admin.register(Subscriber)
+class Subscriberadmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'author')
     search_fields = ('user', 'author')
