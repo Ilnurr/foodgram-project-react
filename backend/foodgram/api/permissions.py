@@ -14,5 +14,8 @@ class AuthorModeratorAdminOrReadOnly(permissions.BasePermission):
     """Автор, модератор и админ могут обновить данные, иначе только чтение."""
 
     def has_object_permission(self, request, view, obj):
-        return (request.method in permissions.SAFE_METHODS
-                or request.user == obj.author)
+        return (
+            request.method in permissions.SAFE_METHODS
+            or request.user.is_staff
+            or request.user == obj.author
+        )
