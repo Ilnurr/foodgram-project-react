@@ -14,6 +14,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='tag',
             name='color',
-            field=colorfield.fields.ColorField(default='#FFFFFF', image_field=None, max_length=7, samples=None, verbose_name='Цвет в НЕХ'),
+            field=colorfield.fields.ColorField(default='#FFFFFF', image_field=None,
+                                max_length=7, samples=None, verbose_name='Цвет в НЕХ'),
         ),
     ]

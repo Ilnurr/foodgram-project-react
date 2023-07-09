@@ -1,12 +1,14 @@
-from rest_framework import serializers
-from djoser.serializers import UserSerializer, UserCreateSerializer
-from django.db import transaction
-from django.core.files.base import ContentFile
 import base64
 
-from users.models import User, Subscriber
-from recipes.models import (Tag, Ingredient, Recipe, IngredientRecipe,
-                            ShoppingList, Favorite)
+from django.core.files.base import ContentFile
+from django.db import transaction
+from djoser.serializers import UserCreateSerializer
+from djoser.serializers import UserSerializer as DjoserUserSerialiser
+from rest_framework import serializers
+
+from recipes.models import (Favorite, Ingredient, IngredientRecipe, Recipe,
+                            ShoppingList, Tag)
+from users.models import Subscriber, User
 
 
 class Base64ImageField(serializers.ImageField):
@@ -28,13 +30,19 @@ class UserCreateSerializer(UserCreateSerializer):
                   'first_name', 'last_name', 'password',)
 
 
-class UsersSerializer(UserSerializer):
+class UserSerializer(DjoserUserSerialiser):
     is_subscriber = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = User
         fields = ('email', 'id', 'username',
                   'first_name', 'last_name', 'password', 'is_subscriber')
+
+    def get_is_Subscriber(self, obj):
+        user = self.context['request'].user
+        if user.is_authenticated:
+            return Subscriber.objects.filter(user=user, author=obj).exists()
+        return False
 
 
 class SubscriberRecipeSerializer(serializers.ModelSerializer):
@@ -101,8 +109,9 @@ class IngredientRecipeSerializer(serializers.ModelSerializer):
 
 class RecipeListSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True)
-    author = UsersSerializer(read_only=True)
-    ingredients = serializers.SerializerMethodField()
+    author = UserSerializer(read_only=True)
+    ingredients = IngredientRecipeSerializer(source='ingredients_amounts',
+                                             many=True, read_only=True,)
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
 

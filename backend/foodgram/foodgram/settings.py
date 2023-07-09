@@ -1,6 +1,5 @@
-
-from pathlib import Path
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -10,11 +9,11 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-SECRET_KEY = os.getenv('SECRET_KEY')
+SECRET_KEY = os.getenv('SECRET_KEY', 'default_value')
 
-DEBUG = os.getenv('DEBUG', False) == 'True'
+DEBUG = bool(os.getenv('DEBUG', 'False') == 'True')
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '127.0.0.1').split(' ')
 
 AUTH_USER_MODEL = 'users.User'
 
@@ -47,6 +46,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'foodgram.urls'
+
 
 TEMPLATES = [
     {
@@ -130,7 +130,7 @@ DJOSER = {
     'HIDE_USERS': False,
     'SERIALIZERS': {
         'user_create': 'api.serializers.UserCreateSerializer',
-        'user': 'api.serializers.UsersSerializer',
+        'user': 'api.serializers.UserSerializer',
 
     },
     'PERMISSIONS': {
