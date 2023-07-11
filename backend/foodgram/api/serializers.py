@@ -38,7 +38,7 @@ class UserSerializer(DjoserUserSerialiser):
         fields = ('email', 'id', 'username',
                   'first_name', 'last_name', 'password', 'is_subscriber')
 
-    def get_is_Subscriber(self, obj):
+    def get_is_subscriber(self, obj):
         user = self.context['request'].user
         if user.is_authenticated:
             return Subscriber.objects.filter(user=user, author=obj).exists()
@@ -104,34 +104,16 @@ class IngredientRecipeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = IngredientRecipe
-        fields = ('id', 'name', 'measurement_unit', 'amount')
+        fields = ('id', 'name', 'measurement_unit', 'amount', 'ingredient',)
 
 
 class RecipeListSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True)
     author = UserSerializer(read_only=True)
-    ingredients = IngredientRecipeSerializer(source='ingredients_amounts',
-                                             many=True, read_only=True,)
-    is_favorited = serializers.SerializerMethodField()
-    is_in_shopping_cart = serializers.SerializerMethodField()
-
-    def get_ingredients(self, obj):
-        ingredients = IngredientRecipe.objects.filter(recipe=obj)
-        return IngredientRecipeSerializer(ingredients, many=True).data
-
-    def get_is_favorited(self, obj):
-        request = self.context.get('request')
-        if request is not None and request.user.is_authenticated:
-            return Favorite.objects.filter(user=request.user,
-                                           recipe_id=obj.id).exists()
-        return False
-
-    def get_is_in_shopping_cart(self, obj):
-        request = self.context.get('request')
-        if request is not None and request.user.is_authenticated:
-            return ShoppingList.objects.filter(user=request.user,
-                                               recipe_id=obj.id).exists()
-        return False
+    ingredients = IngredientRecipeSerializer(source='ingredient',
+                                             many=True, read_only=True)
+    is_favorited = serializers.BooleanField(default=False)
+    is_in_shopping_cart = serializers.BooleanField(default=False)
 
     class Meta:
         model = Recipe
@@ -164,7 +146,7 @@ class FavoriteSerializer(serializers.ModelSerializer):
 
 class RecipeSerializer(serializers.ModelSerializer):
     author = serializers.CurrentUserDefault()
-    ingredients = AddIngredientRecipeSerializer(many=True)
+    ingredients = IngredientRecipeSerializer(many=True)
     tags = serializers.PrimaryKeyRelatedField(
         queryset=Tag.objects.all(),
         many=True)

@@ -9,8 +9,8 @@ from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from recipes.models import (Favorite, Ingredient, IngredientRecipe, Recipe,
-                            ShoppingList, Tag)
+from api.utils import create_shopping_list_file
+from recipes.models import Favorite, Ingredient, Recipe, ShoppingList, Tag
 from users.models import Subscriber
 
 from .permissions import IsAdminOrReadOnly, IsAuthorOrReadOnly
@@ -36,10 +36,10 @@ class UserViewSet(UserViewSet):
     def subscribe(self, request, id=None):
         author = get_object_or_404(User, pk=id)
         user = request.user
-
-        if not request.method == 'POST':
+        '''Проверка создания подписки только при POST-запросе.'''
+        if not request.method != 'POST':
             serializer = SubscribeSerializer(
-                author, data=request.data, contextадф={'request': request}
+                author, data=request.data, context={'request': request}
             )
             serializer.is_valid(raise_exception=True)
             Subscriber.objects.bulk_create(user=user, author=author)
@@ -99,27 +99,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if user.is_anonymous:
             return Recipe.objects.all()
 
-        queryset = Recipe.objects.annotate(
-            is_favorited=Exists(Favorite.objects.filter(
-                user=user, recipe_id=OuterRef('id'))),
-            is_in_shopping_cart=Exists(ShoppingList.objects.filter(
-                user=user, recipe_id=OuterRef('id')))
+        queryset = (
+            Recipe.objects.select_related('author').prefetch_related(
+                'ingredients').annotate(
+                is_favorited=Exists(Favorite.objects.filter(
+                    user=user, recipe_id=OuterRef('id'))),
+                is_in_shopping_cart=Exists(ShoppingList.objects.filter(
+                    user=user, recipe_id=OuterRef('id')))
+            )
         )
         return queryset
-
-    def create_shopping_list_file(user):
-        shopping_list = ShoppingList.objects.filter(user=user)
-        ingredients = IngredientRecipe
-        for item in shopping_list:
-            for ingredient in item.recipe.ingredients.all():
-                if ingredient.name in ingredients:
-                    ingredients[ingredient.name] += ingredient.amount
-                else:
-                    ingredients[ingredient.name] = ingredient.amount
-        output = ''
-        for name, amount in ingredients.items():
-            output += f'{name} - {amount} {ingredient.measurement_unit}\n'
-        return output
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
@@ -134,7 +123,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             user=user, recipe=recipe)
         return shopping_list if created else None
 
-    @action(detail=True, methods=['post', 'delete'],
+    @action(detail=True, methods=['post'],
             permission_classes=[IsAuthenticated])
     def favorite(self, request, id=None):
         recipe = self.get_object()
@@ -142,12 +131,15 @@ class RecipeViewSet(viewsets.ModelViewSet):
             favorite = self.create_favorite(request.user, recipe)
             serializer = FavoriteSerializer(favorite)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        elif request.method == 'DELETE':
-            favorite = Favorite.objects.get(user=request.user, recipe_id=id)
-            favorite.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True, methods=['post', 'delete'],
+    @favorite.mapping.delete
+    def delete_favorite(self, request, pk=None):
+        recipe = get_object_or_404(Recipe, id=pk)
+        favorite = Favorite.objects.get(user=request.user, recipe=recipe)
+        favorite.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=['post'],
             permission_classes=[IsAuthenticated])
     def shopping_list(self, request, id=None):
         recipe = self.get_object()
@@ -158,17 +150,20 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 return Response(
                     serializer.data, status=status.HTTP_201_CREATED)
             return Response(status=status.HTTP_400_BAD_REQUEST)
-        elif request.method == 'DELETE':
-            shopping_list = ShoppingList.objects.get(
-                user=request.user, recipe_id=id)
-            shopping_list.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @shopping_list.mapping.delete
+    def delete_shopping_list(self, request, pk=None):
+        recipe = get_object_or_404(Recipe, id=pk)
+        shopping_list = ShoppingList.objects.get(
+            user=request.user, recipe=recipe)
+        shopping_list.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=['get'],
             permission_classes=[IsAuthenticated])
     def download_shopping_list(self, request):
         user = request.user
-        output = self.create_shopping_list_file(user)
+        output = create_shopping_list_file(user)
         response = FileResponse(output, content_type='text/plain')
         response['Content-Disposition'] = ('attachment;filename="{file}.txt"')
         return response
