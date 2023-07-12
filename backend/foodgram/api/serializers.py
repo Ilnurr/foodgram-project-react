@@ -104,7 +104,7 @@ class IngredientRecipeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = IngredientRecipe
-        fields = ('id', 'name', 'measurement_unit', 'amount', 'ingredient',)
+        fields = ('id', 'name', 'measurement_unit', 'amount')
 
 
 class RecipeListSerializer(serializers.ModelSerializer):
@@ -124,7 +124,9 @@ class RecipeListSerializer(serializers.ModelSerializer):
 
 
 class AddIngredientRecipeSerializer(serializers.ModelSerializer):
-    id = serializers.PrimaryKeyRelatedField(read_only=True)
+    id = serializers.SlugRelatedField(
+        source='ingredient', slug_field='id', queryset=Ingredient.objects.all()
+    )
     amount = serializers.IntegerField(write_only=True, min_value=1)
 
     class Meta:
@@ -146,7 +148,7 @@ class FavoriteSerializer(serializers.ModelSerializer):
 
 class RecipeSerializer(serializers.ModelSerializer):
     author = serializers.CurrentUserDefault()
-    ingredients = IngredientRecipeSerializer(many=True)
+    ingredients = AddIngredientRecipeSerializer(many=True)
     tags = serializers.PrimaryKeyRelatedField(
         queryset=Tag.objects.all(),
         many=True)
