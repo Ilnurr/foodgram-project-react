@@ -22,7 +22,7 @@ from .serializers import (FavoriteSerializer, IngredientSerializer,
 User = get_user_model()
 
 
-class UserViewSet(UserViewSet):
+class UsersViewSet(UserViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     pagination_class = LimitOffsetPagination
@@ -36,11 +36,22 @@ class UserViewSet(UserViewSet):
     def subscribe(self, request, id=None):
         author = get_object_or_404(User, pk=id)
         user = request.user
+        if author == user:
+            return Response({
+                'error': 'Вы не можете подписываться на самого себя'},
+                status=status.HTTP_400_BAD_REQUEST)
+        if Subscriber.objects.filter(user=user, author=author).exists():
+            return Response({
+                'errors': 'Вы уже подписаны на данного пользователя'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         serializer = SubscribeSerializer(
             author, data=request.data, context={'request': request}
         )
         serializer.is_valid(raise_exception=True)
-        Subscriber.objects.bulk_create(user=user, author=author)
+
+        subscriber = Subscriber(user=user, author=author)
+        subscriber.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @subscribe.mapping.delete
@@ -52,20 +63,17 @@ class UserViewSet(UserViewSet):
 
     @action(
         methods=['get'],
-        detail=True,
+        detail=False,
         permission_classes=[IsAuthenticated],
-        url_name='subscriptions',
-        url_path='subscriptions'
     )
-    def subscriptions(self, request, pk=None):
-        user = request.user
-        queryset = Subscriber.objects.filter(user=user)
+    def subscriptions(self, request):
+        queryset = User.objects.filter(following__user=self.request.user)
         pages = self.paginate_queryset(queryset)
         serializer = SubscribeSerializer(
             pages,
             context={'request': request},
             many=True,)
-        return Response(serializer.data)
+        return self.get_paginated_response(serializer.data)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -90,6 +98,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter]
     search_fields = ('is_favorited', 'author', 'tags', 'is_in_shopping_cart')
     paginator_class = LimitOffsetPagination
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
 
     def get_queryset(self):
         user = self.request.user
@@ -131,8 +142,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'],
             permission_classes=[IsAuthenticated])
-    def favorite(self, request, id=None):
-        recipe = self.get_object()
+    def favorite(self, request, **kwargs):
+        recipe = get_object_or_404(Recipe, id=kwargs.get('pk'))
         favorite = self.create_favorite(request.user, recipe)
         serializer = FavoriteSerializer(favorite)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -157,8 +168,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
     @shopping_list.mapping.delete
-    def delete_shopping_list(self, request, pk=None):
-        recipe = get_object_or_404(Recipe, id=pk)
+    def delete_shopping_list(self, request, id=None):
+        recipe = get_object_or_404(Recipe, id=id)
         shopping_list = ShoppingList.objects.get(
             user=request.user, recipe=recipe)
         shopping_list.delete()
