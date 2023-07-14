@@ -136,9 +136,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return Favorite.objects.create(user=user, recipe=recipe)
 
     def create_shopping_list(self, user, recipe):
-        shopping_list, created = ShoppingList.objects.get_or_create(
+        shopping_cart, created = ShoppingList.objects.get_or_create(
             user=user, recipe=recipe)
-        return shopping_list if created else None
+        return shopping_cart if created else None
 
     @action(detail=True, methods=['post'],
             permission_classes=[IsAuthenticated])
@@ -157,27 +157,27 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'],
             permission_classes=[IsAuthenticated])
-    def shopping_list(self, request, id=None):
-        recipe = self.get_object()
+    def shopping_cart(self, request, **kwargs):
+        recipe = get_object_or_404(Recipe, id=kwargs.get('pk'))
         if request.method == 'POST':
-            shopping_list = self.create_shopping_list(request.user, recipe)
-            if shopping_list:
-                serializer = ShoppingListSerializer(shopping_list)
+            shopping_cart = self.create_shopping_list(request.user, recipe)
+            if shopping_cart:
+                serializer = ShoppingListSerializer(shopping_cart)
                 return Response(
                     serializer.data, status=status.HTTP_201_CREATED)
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-    @shopping_list.mapping.delete
-    def delete_shopping_list(self, request, id=None):
+    @shopping_cart.mapping.delete
+    def delete_shopping_cart(self, request, id=None):
         recipe = get_object_or_404(Recipe, id=id)
-        shopping_list = ShoppingList.objects.get(
+        shopping_cart = ShoppingList.objects.get(
             user=request.user, recipe=recipe)
-        shopping_list.delete()
+        shopping_cart.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=['get'],
             permission_classes=[IsAuthenticated])
-    def download_shopping_list(self, request):
+    def download_shopping_cart(self, request):
         user = request.user
         output = create_shopping_list_file(user)
         response = FileResponse(output, content_type='text/plain')
