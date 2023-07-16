@@ -52,7 +52,7 @@ class SubscriberRecipeSerializer(serializers.ModelSerializer):
 
 
 class SubscribeSerializer(UserSerializer):
-    id = serializers.ReadOnlyField(source='author.id')
+    id = serializers.ReadOnlyField()
     email = serializers.ReadOnlyField(source='author.email')
     username = serializers.ReadOnlyField(source='author.username')
     first_name = serializers.ReadOnlyField(source='author.first_name')
