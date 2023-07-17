@@ -17,7 +17,7 @@ def create_shopping_list_file(user):
                         ingredients[ingredient.name] += ingredient.ingredien
                     else:
                         ingredients[ingredient.name] = ingredient.ingredien
- 
+
     output = ''
     for name, amount in ingredients.items():
         output += f'{name} - {amount} {name.measurement_unit}\n'
