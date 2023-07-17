@@ -114,7 +114,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         if user.is_anonymous:
             return Recipe.objects.prefetch_related(
-            'author', 'ingredients', 'tags'
+                'author', 'ingredients', 'tags'
             ).only('author')
 
         queryset = (
@@ -151,7 +151,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
             recipe=recipe)
         return shopping_cart if created else None
 
-    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    @action(
+        detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def favorite(self, request, **kwargs):
         recipe = get_object_or_404(Recipe, id=kwargs.get('pk'))
         favorite = self.create_favorite(request.user, recipe)
@@ -167,7 +168,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(status=status.HTTP_404_NOT_FOUND)
 
-    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    @action(
+        detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def shopping_cart(self, request, **kwargs):
         recipe = get_object_or_404(Recipe, id=kwargs.get('pk'))
         shopping_cart = self.create_shopping_list(request.user, recipe)
