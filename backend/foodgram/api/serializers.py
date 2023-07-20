@@ -38,11 +38,11 @@ class UserSerializer(DjoserUserSerialiser):
         fields = ('email', 'id', 'username',
                   'first_name', 'last_name', 'password', 'is_subscriber')
 
-    def get_is_subscriber(self, obj):
+    def get_is_subscribed(self, obj):
         user = self.context['request'].user
         if user.is_authenticated:
-            return Subscriber.objects.filter(user=user, author=obj.id).exists()
-        return False
+            return False
+        return Subscriber.objects.filter(user=user, author=obj.id).exists()
 
 
 class SubscriberRecipeSerializer(serializers.ModelSerializer):
@@ -53,16 +53,16 @@ class SubscriberRecipeSerializer(serializers.ModelSerializer):
 
 class SubscribeSerializer(UserSerializer):
     id = serializers.ReadOnlyField()
-    email = serializers.ReadOnlyField(source='author.email')
-    username = serializers.ReadOnlyField(source='author.username')
-    first_name = serializers.ReadOnlyField(source='author.first_name')
-    last_name = serializers.ReadOnlyField(source='author.last_name')
+    email = serializers.ReadOnlyField()
+    username = serializers.ReadOnlyField()
+    first_name = serializers.ReadOnlyField()
+    last_name = serializers.ReadOnlyField()
     recipes = serializers.SerializerMethodField()
     is_subscribed = serializers.SerializerMethodField()
     recipes_count = serializers.ReadOnlyField(source='author.recipes.count')
 
     class Meta:
-        model = Subscriber
+        model = User
         fields = (
             'id', 'email', 'username', 'first_name', 'last_name',
             'is_subscribed', 'recipes', 'recipes_count'
@@ -70,12 +70,11 @@ class SubscribeSerializer(UserSerializer):
 
     def get_is_subscribed(self, obj):
         user = self.context['request'].user
-        if user.is_anonymous:
-            return False
         return Subscriber.objects.filter(user=user, author=obj).exists()
 
     def get_recipes(self, obj):
-        recipes = Recipe.objects.filter(author=obj)
+        limit = 3
+        recipes = Recipe.objects.filter(author=obj)[:limit]
         serializer = SubscriberRecipeSerializer(recipes, many=True)
         return serializer.data
 
@@ -162,6 +161,18 @@ class RecipeSerializer(serializers.ModelSerializer):
             'id', 'tags', 'author', 'ingredients', 'name',
             'image', 'text', 'cooking_time'
         )
+
+    def validate_ingredients(self, data):
+        ingredients = []
+        for ingredient in data:
+            if 'ingredient' not in ingredient or 'amount' not in ingredient:
+                raise serializers.ValidationError(
+                    'Количество ингридиенитов должно быть больше 0')
+            if ingredient['ingredient'] in ingredients:
+                raise serializers.ValidationError(
+                    'Использование повторяющихся ингредиентов не допускается')
+            ingredients.append(ingredient['ingredient'])
+            return data
 
     @transaction.atomic()
     def create(self, validated_data):
