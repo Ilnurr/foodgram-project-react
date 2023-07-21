@@ -163,7 +163,7 @@ class RecipeSerializer(serializers.ModelSerializer):
             'image', 'text', 'cooking_time'
         )
 
-    def validate_ingredients(self, data):
+    def validate(self, data):
         ingredients = []
         for ingredient in data:
             if 'ingredient' not in ingredient or 'amount' not in ingredient:
