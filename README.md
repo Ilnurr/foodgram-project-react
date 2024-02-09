@@ -15,7 +15,7 @@ Foodgram - продуктовый помощник, который позвол�
 ![Ubuntu](https://img.shields.io/badge/Ubuntu-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)
 ![Nginx](https://img.shields.io/badge/nginx-%23009639.svg?style=for-the-badge&logo=nginx&logoColor=white)
 
-## Запуск проекта на локальной машине с помощью Docker:
+## Запуск проекта с помощью Docker:
 
 Клонируйте репозиторий:
 ```
