@@ -23,7 +23,7 @@ git clone git@github.com:Ilnurr/foodgram-project-react.git
 ```
 Создайте файл .env в корневой директории проекта и добавьте следующие строки:
 ```
-SECRET_KEY = 'YOUR_SECRET_KEY' #Унимкальный ключ
+SECRET_KEY = 'YOUR_SECRET_KEY' #Уникальный ключ
 ALLOWED_HOSTS = 'YOUR_DOMAIN_NAME' #Доменное имя 
 DB_NAME=postgres 
 POSTGRES_USER=postgres 
